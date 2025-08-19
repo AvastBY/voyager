@@ -2,15 +2,15 @@
 
 namespace TCG\Voyager\Http\Controllers;
 
-use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Auth\Events\Lockout;
 use TCG\Voyager\Facades\Voyager;
 
 class VoyagerAuthController extends Controller
 {
-    use AuthenticatesUsers;
-
     public function login()
     {
         if ($this->guard()->user()) {
@@ -24,26 +24,18 @@ class VoyagerAuthController extends Controller
     {
         $this->validateLogin($request);
 
-        // If the class is using the ThrottlesLogins trait, we can automatically throttle
-        // the login attempts for this application. We'll key this by the username and
-        // the IP address of the client making these requests into this application.
         if ($this->hasTooManyLoginAttempts($request)) {
             $this->fireLockoutEvent($request);
-
             return $this->sendLockoutResponse($request);
         }
 
         $credentials = $this->credentials($request);
 
-        if ($this->guard()->attempt($credentials, $request->has('remember'))) {
+        if ($this->guard()->attempt($credentials, (bool) $request->boolean('remember'))) {
             return $this->sendLoginResponse($request);
         }
 
-        // If the login attempt was unsuccessful we will increment the number of attempts
-        // to login and redirect the user back to the login form. Of course, when this
-        // user surpasses their maximum number of attempts they will get locked out.
         $this->incrementLoginAttempts($request);
-
         return $this->sendFailedLoginResponse($request);
     }
 
@@ -63,5 +55,80 @@ class VoyagerAuthController extends Controller
     protected function guard()
     {
         return Auth::guard(app('VoyagerGuard'));
+    }
+
+    protected function username()
+    {
+        return 'email';
+    }
+
+    protected function validateLogin(Request $request): void
+    {
+        $request->validate([
+            $this->username() => ['required', 'string'],
+            'password' => ['required', 'string'],
+        ]);
+    }
+
+    protected function credentials(Request $request): array
+    {
+        return [
+            $this->username() => $request->input($this->username()),
+            'password' => $request->input('password'),
+        ];
+    }
+
+    protected function sendLoginResponse(Request $request)
+    {
+        $request->session()->regenerate();
+        $this->clearLoginAttempts($request);
+
+        return redirect()->intended($this->redirectTo());
+    }
+
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        return back()
+            ->withErrors([$this->username() => trans('auth.failed')])
+            ->onlyInput($this->username());
+    }
+
+    protected function throttleKey(Request $request): string
+    {
+        return Str::lower($request->input($this->username())).'|'.$request->ip();
+    }
+
+    protected function hasTooManyLoginAttempts(Request $request): bool
+    {
+        return RateLimiter::tooManyAttempts($this->throttleKey($request), 5);
+    }
+
+    protected function incrementLoginAttempts(Request $request): void
+    {
+        RateLimiter::hit($this->throttleKey($request), 60);
+    }
+
+    protected function clearLoginAttempts(Request $request): void
+    {
+        RateLimiter::clear($this->throttleKey($request));
+    }
+
+    protected function fireLockoutEvent(Request $request): void
+    {
+        event(new Lockout($request));
+    }
+
+    protected function sendLockoutResponse(Request $request)
+    {
+        $seconds = RateLimiter::availableIn($this->throttleKey($request));
+
+        return back()
+            ->withErrors([
+                $this->username() => trans('auth.throttle', [
+                    'seconds' => $seconds,
+                    'minutes' => ceil($seconds / 60),
+                ]),
+            ])
+            ->onlyInput($this->username());
     }
 }
