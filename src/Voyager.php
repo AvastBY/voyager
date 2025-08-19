@@ -2,7 +2,8 @@
 
 namespace TCG\Voyager;
 
-use Arrilot\Widgets\Facade as Widget;
+// Widgets facade is optional and removed to avoid hard dependency during install
+// use Arrilot\Widgets\Facade as Widget;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Filesystem\Filesystem;
@@ -197,28 +198,13 @@ class Voyager
     {
         $widgetClasses = config('voyager.dashboard.widgets');
         $dimmerGroups = [];
-        $dimmerCount = 0;
-        $dimmers = Widget::group("voyager::dimmers-{$dimmerCount}");
 
         foreach ($widgetClasses as $widgetClass) {
             $widget = app($widgetClass);
-
             if ($widget->shouldBeDisplayed()) {
-
-                // Every third dimmer, we consider out WidgetGroup filled.
-                // We switch that out with another WidgetGroup.
-                if ($dimmerCount % 3 === 0 && $dimmerCount !== 0) {
-                    $dimmerGroups[] = $dimmers;
-                    $dimmerGroupTag = ceil($dimmerCount / 3);
-                    $dimmers = Widget::group("voyager::dimmers-{$dimmerGroupTag}");
-                }
-
-                $dimmers->addWidget($widgetClass);
-                $dimmerCount++;
+                $dimmerGroups[] = $widgetClass;
             }
         }
-
-        $dimmerGroups[] = $dimmers;
 
         return $dimmerGroups;
     }
