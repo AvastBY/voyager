@@ -21,6 +21,7 @@
 
     <!-- App CSS -->
     <link rel="stylesheet" href="{{ voyager_asset('css/app.css') }}">
+    <link rel="stylesheet" href="{{ voyager_asset('css/admin.css') }}">
 
     @yield('css')
     @if(__('voyager::generic.is_rtl') == 'true')
@@ -118,6 +119,8 @@ if (\Illuminate\Support\Str::startsWith(Auth::user()->avatar, 'http://') || \Ill
 
 
 <script type="text/javascript" src="{{ voyager_asset('js/app.js') }}"></script>
+<script type="text/javascript" src="{{ voyager_asset('js/sortable.js') }}"></script>
+<script type="text/javascript" src="{{ voyager_asset('js/admin.js') }}"></script>
 
 <script>
     @if(Session::has('alerts'))

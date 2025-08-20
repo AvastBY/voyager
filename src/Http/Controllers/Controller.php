@@ -21,6 +21,9 @@ use TCG\Voyager\Http\Controllers\ContentTypes\Relationship;
 use TCG\Voyager\Http\Controllers\ContentTypes\SelectMultiple;
 use TCG\Voyager\Http\Controllers\ContentTypes\Text;
 use TCG\Voyager\Http\Controllers\ContentTypes\Timestamp;
+use TCG\Voyager\Http\Controllers\ContentTypes\KeyValue;
+use TCG\Voyager\Http\Controllers\ContentTypes\ValuesList;
+use TCG\Voyager\Http\Controllers\ContentTypes\AttributedGallery;
 use TCG\Voyager\Traits\AlertsMessages;
 use Validator;
 
@@ -45,6 +48,7 @@ abstract class Controller extends BaseController
     public function insertUpdateData($request, $slug, $rows, $data)
     {
         $multi_select = [];
+        $attributedGalleryContext = [];
 
         // Pass $rows so that we avoid checking unused fields
         $request->attributes->add(['breadRows' => $rows->pluck('field')->toArray()]);
@@ -70,6 +74,15 @@ abstract class Controller extends BaseController
             // Value is saved from $row->details->column row
             if ($row->type == 'relationship' && $row->details->type == 'belongsTo') {
                 continue;
+            }
+
+            // Capture original value for attributed_gallery to safely merge later
+            if ($row->type == 'attributed_gallery') {
+                $original = $data->getOriginal($row->field);
+                $attributedGalleryContext[] = [
+                    'field'    => $row->field,
+                    'existing' => $original ? @json_decode($original, true) : [],
+                ];
             }
 
             $content = $this->getContentBasedOnType($request, $slug, $row, $row->details);
@@ -136,6 +149,55 @@ abstract class Controller extends BaseController
                 if ($request->has($attr)) {
                     $data->{$attr} = $request->{$attr};
                 }
+            }
+        }
+
+        // Post-process attributed_gallery fields: reorder existing items per POST order, merge edited attributes, then append new uploads
+        if (!empty($attributedGalleryContext)) {
+            foreach ($attributedGalleryContext as $ctx) {
+                $fieldName = $ctx['field'];
+                $existingItems = is_array($ctx['existing']) ? $ctx['existing'] : [];
+                $newItems = [];
+                if (!empty($data->{$fieldName})) {
+                    $newItems = @json_decode($data->{$fieldName}, true) ?: [];
+                }
+
+                // Merge additional attributes for newly uploaded files
+                $postedNewAttributes = $request->input($fieldName.'_new');
+                if (is_array($newItems) && is_array($postedNewAttributes)) {
+                    foreach ($newItems as $index => $item) {
+                        if (isset($postedNewAttributes[$index]) && is_array($postedNewAttributes[$index])) {
+                            $clean = array_diff($postedNewAttributes[$index], [null]);
+                            $newItems[$index] = array_merge($item, $clean);
+                        }
+                    }
+                }
+
+                // Reorder and update existing items based on POSTed ext attributes order
+                $extAttributes = $request->input($fieldName.'_ext');
+                $orderedExisting = [];
+                if (is_array($existingItems) && is_array($extAttributes)) {
+                    $existingBySrc = [];
+                    foreach ($existingItems as $ex) {
+                        if (is_array($ex) && isset($ex['src'])) {
+                            $existingBySrc[$ex['src']] = $ex;
+                        }
+                    }
+                    foreach ($extAttributes as $ext) {
+                        if (is_array($ext) && isset($ext['src'])) {
+                            $src = $ext['src'];
+                            if (isset($existingBySrc[$src])) {
+                                $orderedExisting[] = array_merge($existingBySrc[$src], $ext);
+                            }
+                        }
+                    }
+                } else {
+                    $orderedExisting = $existingItems;
+                }
+
+                $merged = array_values(array_merge($orderedExisting ?: [], $newItems ?: []));
+
+                $data->{$fieldName} = !empty($merged) ? json_encode($merged) : null;
             }
         }
 
@@ -290,6 +352,15 @@ abstract class Controller extends BaseController
             /********** RELATIONSHIPS TYPE **********/
             case 'relationship':
                 return (new Relationship($request, $slug, $row, $options))->handle();
+			/********** VALUES LIST TYPE **********/
+			case 'values_list':
+                return (new ValuesList($request, $slug, $row, $options))->handle();
+			/********** KEY VALUES LIST TYPE **********/
+            case 'key_value':
+                return (new KeyValue($request, $slug, $row, $options))->handle();
+			/********** ATTRIBUTED GALLERY TYPE **********/
+            case 'attributed_gallery':
+                return (new AttributedGallery($request, $slug, $row, $options))->handle();
             /********** ALL OTHER TEXT TYPE **********/
             default:
                 return (new Text($request, $slug, $row, $options))->handle();

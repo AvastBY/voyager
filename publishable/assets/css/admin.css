@@ -1,0 +1,128 @@
+.nopad{
+    padding: 0!important;
+}
+.nopad-y{
+    padding-top: 0!important;
+    padding-bottom: 0!important;
+}
+.nopad-x{
+    padding-left: 0!important;
+    padding-right: 0!important;
+}
+.nav-tabs.custom>li.active>a:hover{
+    color: rgb(118, 131, 143);
+}
+.composite-body .vpb-image-group img[src=""]{
+    min-height: 60px;
+    background-color: white;
+    position: relative;
+    z-index: 20;
+    border: 1px solid #f1f1f1;
+    border-radius: 4px;
+}
+.composite-body .vpb-image-group img[src=""]:after{
+    content: 'Фото не загружено';
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(0%, -50%);
+    width: 100%;
+    text-align: center;
+}
+
+.composite-body .ace_editor.min_height_200{
+    min-height: 400px;
+}
+.dd-item.point > .dd-handle{
+    background-color: papayawhip;
+}
+
+.multiple-images .img_settings_container{
+	position: relative;
+}
+.multiple-images .img_settings_container:after{
+	content: '=';
+	display: block;
+	position: absolute;
+	top: 0;
+	right: 0;
+	background-color: white;
+	padding: 5px 10px;
+	border: 1px solid #ddd;
+	cursor: move;
+}
+.images-for-upload .img_settings_container:after{
+	content: none;
+}
+.tabs-content .nav-tabs{
+	background: none;
+	border-bottom: 0px;
+}
+
+.tabs-content .nav-tabs a {
+    text-align: center;
+    background: #f8f8f8;
+    border: 1px solid #f1f1f1;
+    position: relative;
+    top: -1px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+
+.loading{
+	color: transparent!important;
+    min-height: .8rem;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+	animation: loading .5s infinite linear;
+	border: .1rem solid #fff;
+	border-radius: 50%;
+	border-right-color: transparent;
+	border-top-color: transparent;
+	content: "";
+	display: block;
+	height: .8rem;
+	left: 50%;
+	margin-left: -.4rem;
+	margin-top: -.4rem;
+	position: absolute;
+	top: 50%;
+	width: .8rem;
+	z-index: 1;
+}
+.input-loading{
+	pointer-events: all;
+}
+.loading:after{
+	border-left-color: black;
+	border-bottom-color: black;
+}
+
+@keyframes loading {
+	0% {
+		transform: rotate(0)
+	}
+	100% {
+		transform: rotate(360deg)
+	}
+}
+
+/* Dropzone */
+.v-dropzone{
+	border: 2px dashed #d9e2ec;
+	border-radius: 6px;
+	padding: 18px;
+	text-align: center;
+	cursor: pointer;
+	background: #fafbfc;
+}
+.v-dropzone:hover{
+	background: #f5f7fa;
+}
+.v-dropzone.is-dragover{
+	background: #eef6ff;
+	border-color: #84c5f4;
+}

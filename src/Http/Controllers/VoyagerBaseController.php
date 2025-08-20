@@ -575,6 +575,84 @@ class VoyagerBaseController extends Controller
 
     public function remove_media(Request $request)
     {
+        // Support removing single item from attributed_gallery with extended attributes
+        if ($request->get('multiple_ext')) {
+            try {
+                $slug = $request->get('slug');
+                $image = $request->get('image');
+                $id = $request->get('id');
+                $field = $request->get('field');
+
+                $dataType = Voyager::model('DataType')->where('slug', '=', $slug)->first();
+
+                // Check permission
+                $this->authorize('delete', app($dataType->model_name));
+
+                // Load model and find record
+                $model = app($dataType->model_name);
+                $data = $model::find([$id])->first();
+
+                // Decode field value
+                $fieldData = @json_decode($data->{$field}, true);
+                if (!is_array($fieldData)) {
+                    $fieldData = [];
+                }
+
+                // Find image index by matching src
+                $foundIndex = null;
+                foreach ($fieldData as $i => $single) {
+                    if (is_array($single) && isset($single['src']) && $single['src'] === $image) {
+                        $foundIndex = $i;
+                        break;
+                    }
+                }
+
+                if ($foundIndex === null) {
+                    return response()->json([
+                        'data' => [
+                            'status'  => 404,
+                            'message' => __('voyager::media.file_does_not_exist'),
+                        ],
+                    ], 404);
+                }
+
+                // Remove file from filesystem
+                $this->deleteFileIfExists($image);
+
+                // Remove image from array
+                unset($fieldData[$foundIndex]);
+
+                // Reindex and save
+                $data->{$field} = empty($fieldData) ? null : json_encode(array_values($fieldData));
+                $data->save();
+
+                return response()->json([
+                    'data' => [
+                        'status'  => 200,
+                        'message' => __('voyager::media.image_removed'),
+                    ],
+                ]);
+            } catch (Exception $e) {
+                $code = 500;
+                $message = __('voyager::generic.internal_error');
+
+                if ($e->getCode()) {
+                    $code = $e->getCode();
+                }
+
+                if ($e->getMessage()) {
+                    $message = $e->getMessage();
+                }
+
+                return response()->json([
+                    'data' => [
+                        'status'  => $code,
+                        'message' => $message,
+                    ],
+                ], $code);
+            }
+        }
+
         try {
             // GET THE SLUG, ex. 'posts', 'pages', etc.
             $slug = $request->get('slug');
