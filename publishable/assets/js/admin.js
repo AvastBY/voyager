@@ -153,7 +153,11 @@ if(document.querySelectorAll('.multiple-images').length){
 	document.querySelectorAll('.multiple-images').forEach(function (list, i) {
 		Sortable.create(list, {
 			handle: '.img_settings_container',
-			animation: 150
+			animation: 150,
+			onEnd: function(){
+				var field = list.getAttribute('data-id');
+				if(window.voyagerUpdateGalleryOrder){ window.voyagerUpdateGalleryOrder(field); }
+			}
 		})
 	});
 }
@@ -207,3 +211,23 @@ document.addEventListener('drop', function(e){
     var fileInput = document.querySelector('[data-load-photo="true"][name="'+inputName+'"]');
     if(fileInput){ handleFilesAdd(e.dataTransfer.files, fileInput); }
 });
+
+// Keep hidden order field reflecting current list order
+window.voyagerUpdateGalleryOrder = function(field){
+    var list = document.querySelector('.js-gallery-list[data-id="'+field+'"]');
+    var containers = list ? list.querySelectorAll('.img_settings_container') : [];
+    var order = [];
+    if(containers && containers.length){
+        containers.forEach(function(container){
+            var img = container.querySelector('img');
+            if(img && img.getAttribute('data-image')){
+                order.push(img.getAttribute('data-image'));
+            } else if(container.classList.contains('is-new')){
+                var newIdx = container.getAttribute('data-new-index');
+                if(newIdx !== null){ order.push('new_index:'+newIdx); }
+            }
+        });
+    }
+    var hidden = document.querySelector('.js-gallery-order[data-id="'+field+'"]');
+    if(hidden){ hidden.value = JSON.stringify(order); }
+}

@@ -126,3 +126,8 @@
 	background: #eef6ff;
 	border-color: #84c5f4;
 }
+
+/* New file highlight in gallery */
+.multiple-images .img_settings_container.is-new img{
+	border: 1px solid #7db4ff !important;
+}

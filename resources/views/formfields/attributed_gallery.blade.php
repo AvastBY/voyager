@@ -10,7 +10,7 @@
         @php
             $required = false;
         @endphp
-        <div class="multiple-images">
+        <div class="multiple-images js-gallery-list" data-id="{{ $row->field }}">
             @foreach($images as $image)
                 <div class="img_settings_container" data-field-name="{{ $row->field }}">
                     <img src="{{ Voyager::image( $image->src ) }}" data-image="{{ $image->src }}" data-id="{{ !empty($dataTypeContent->blockId) ? $dataTypeContent->blockId : $dataTypeContent->id }}">
@@ -32,14 +32,17 @@
     @endif
 
 @endif
-<div class="images-for-upload multiple-images" data-id="{{ $row->field }}"></div>
+@if(!isset($images) || empty($images))
+<div class="multiple-images js-gallery-list" data-id="{{ $row->field }}"></div>
+@endif
 <div class="v-dropzone js-file-dropzone" data-target-input="{{ $row->field }}[]">
     Перетащите изображения сюда или нажмите, чтобы выбрать
     <small style="display:block;color:#999;margin-top:4px;">Поддерживаются: JPG, PNG, GIF</small>
     <small style="display:block;color:#bbb;">Можно также перетащить несколько файлов сразу</small>
 </div>
 <div class="clearfix"></div>
-<input data-load-photo="true" @if($required) required @endif type="file" name="{{ $row->field }}[]" multiple="multiple" accept="image/*">
+<input type="hidden" name="{{ $row->field }}_order" class="js-gallery-order" data-id="{{ $row->field }}" value="">
+<input data-load-photo="true" @if($required) required @endif type="file" name="{{ $row->field }}[]" multiple="multiple" accept="image/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
 <script>
 
 document.addEventListener('DOMContentLoaded', function(){
@@ -50,16 +53,18 @@ document.addEventListener('DOMContentLoaded', function(){
 
                 let files = input.files;
                 let name = input.getAttribute('name').replace('[]','');
-                let $row = document.querySelector('.images-for-upload[data-id="'+name+'"]');
-                $row.innerHTML = '';
+                let $row = document.querySelector('.js-gallery-list[data-id="'+name+'"]');
+                if(!$row.dataset.newIndex){ $row.dataset.newIndex = '0'; }
+                let renderedNew = $row.querySelectorAll('.img_settings_container.is-new').length;
 
-                for(var i = 0; i < files.length; i++) {
+                for(var i = renderedNew; i < files.length; i++) {
                     let file = files[i];
 
                     if ( file.type.startsWith('image/') ){
                         let img = document.createElement('img');
                         img.file = file;
-                        $row.insertAdjacentHTML('beforeend', `<div class="img_settings_container" data-fname="`+file.name+`"></div>`);
+                        let nextIdx = parseInt($row.dataset.newIndex);
+                        $row.insertAdjacentHTML('beforeend', `<div class=\"img_settings_container is-new\" data-fname=\"`+file.name+`\"></div>`);
                         let $container = $row.querySelector('.img_settings_container:last-child');
                         $container.appendChild(img);
                         $container.insertAdjacentHTML('beforeend', `
@@ -68,17 +73,21 @@ document.addEventListener('DOMContentLoaded', function(){
                                             </div>
 
                                             <div class="form-group" style="display: block">
-                                                <label><b>Alt:</b><input class="form-control" type="text" name="`+name+`_new[`+i+`][alt]" autocomplete="off"></label>
-                                                <label><b>Title:</b><input class="form-control" type="text" name="`+name+`_new[`+i+`][title]" autocomplete="off"></label>
-                                                <label><b>Description:</b><input class="form-control" type="text" name="`+name+`_new[`+i+`][description]" autocomplete="off"></label>
+                                                <label><b>Alt:</b><input class="form-control" type="text" name="`+name+`_new[`+nextIdx+`][alt]" autocomplete="off"></label>
+                                                <label><b>Title:</b><input class="form-control" type="text" name="`+name+`_new[`+nextIdx+`][title]" autocomplete="off"></label>
+                                                <label><b>Description:</b><input class="form-control" type="text" name="`+name+`_new[`+nextIdx+`][description]" autocomplete="off"></label>
                                             </div>
                                         `);
+                        $container.setAttribute('data-new-index', nextIdx);
+                        $row.dataset.newIndex = String(nextIdx + 1);
 
                         let reader = new FileReader();
                         reader.onload = (function(aImg) { return function(e) { aImg.src = e.target.result; }; })(img);
                         reader.readAsDataURL(file);
                     };
                 }
+
+                if(window.voyagerUpdateGalleryOrder){ window.voyagerUpdateGalleryOrder(name); }
 
 
             });
@@ -91,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function(){
         if( $target ) {
             let $container = $target.closest('.img_settings_container');
             let fileName = $container.getAttribute('data-fname');
-            let $fileInput = document.querySelector('[data-load-photo="true"][name="'+$container.closest('.images-for-upload').getAttribute('data-id')+'[]"]');
+            let $fileInput = document.querySelector('[data-load-photo="true"][name="'+$container.closest('.js-gallery-list').getAttribute('data-id')+'[]"]');
 
             let dt = new DataTransfer();
             for(let i = 0; i < $fileInput.files.length; i++) {
@@ -99,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 if(fileName != file.name) dt.items.add($fileInput.files[i]);
             }
             $fileInput.files = dt.files;
-            // $container.remove();
+            $container.remove();
 
             var event = new Event('change');
             $fileInput.dispatchEvent(event);

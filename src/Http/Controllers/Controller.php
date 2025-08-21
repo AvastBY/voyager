@@ -173,7 +173,7 @@ abstract class Controller extends BaseController
                     }
                 }
 
-                // Reorder and update existing items based on POSTed ext attributes order
+                // Reorder and update existing items based on POSTed ext order and overall gallery order
                 $extAttributes = $request->input($fieldName.'_ext');
                 $orderedExisting = [];
                 if (is_array($existingItems) && is_array($extAttributes)) {
@@ -195,7 +195,33 @@ abstract class Controller extends BaseController
                     $orderedExisting = $existingItems;
                 }
 
-                $merged = array_values(array_merge($orderedExisting ?: [], $newItems ?: []));
+                // Apply total order if provided (existing first by src, then new by new_index)
+                $finalOrdered = [];
+                $orderRaw = $request->input($fieldName.'_order');
+                if (!empty($orderRaw)) {
+                    $orderList = @json_decode($orderRaw, true);
+                    if (is_array($orderList)) {
+                        $existingMap = [];
+                        foreach ($orderedExisting as $item) {
+                            if (isset($item['src'])) {
+                                $existingMap[$item['src']] = $item;
+                            }
+                        }
+                        $newMap = [];
+                        foreach ($newItems as $idx => $item) {
+                            $newMap['new_index:'.$idx] = $item;
+                        }
+                        foreach ($orderList as $key) {
+                            if (isset($existingMap[$key])) {
+                                $finalOrdered[] = $existingMap[$key];
+                            } elseif (isset($newMap[$key])) {
+                                $finalOrdered[] = $newMap[$key];
+                            }
+                        }
+                    }
+                }
+
+                $merged = array_values(!empty($finalOrdered) ? $finalOrdered : array_merge($orderedExisting ?: [], $newItems ?: []));
 
                 $data->{$fieldName} = !empty($merged) ? json_encode($merged) : null;
             }
