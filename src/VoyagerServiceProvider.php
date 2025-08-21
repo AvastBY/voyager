@@ -119,6 +119,9 @@ class VoyagerServiceProvider extends ServiceProvider
             $this->loadMigrationsFrom(realpath(__DIR__.'/../migrations'));
         }
 
+        // Регистрируем маршруты для thumbs
+        $this->loadThumbsRoutes();
+
         $this->loadAuth();
 
         $this->registerViewComposers();
@@ -255,7 +258,9 @@ class VoyagerServiceProvider extends ServiceProvider
             'config' => [
                 "{$publishablePath}/config/voyager.php" => config_path('voyager.php'),
             ],
-
+            'thumbs_config' => [
+                "{$publishablePath}/config/voyager_thumbs.php" => config_path('voyager_thumbs.php'),
+            ],
         ];
 
         foreach ($publishable as $group => $paths) {
@@ -268,6 +273,11 @@ class VoyagerServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(
             dirname(__DIR__).'/publishable/config/voyager.php',
             'voyager'
+        );
+        
+        $this->mergeConfigFrom(
+            dirname(__DIR__).'/publishable/config/voyager_thumbs.php',
+            'voyager_thumbs'
         );
     }
 
@@ -356,6 +366,8 @@ class VoyagerServiceProvider extends ServiceProvider
         $this->commands(Commands\InstallCommand::class);
         $this->commands(Commands\ControllersCommand::class);
         $this->commands(Commands\AdminCommand::class);
+        $this->commands(Commands\InstallThumbsCommand::class);
+        $this->commands(Commands\ClearThumbsCommand::class);
     }
 
     /**
@@ -364,5 +376,28 @@ class VoyagerServiceProvider extends ServiceProvider
     private function registerAppCommands()
     {
         $this->commands(Commands\MakeModelCommand::class);
+    }
+
+    /**
+     * Load thumbs routes.
+     */
+    private function loadThumbsRoutes()
+    {
+        $router = app('router');
+        
+        // Регистрируем маршруты для thumbs с префиксом storage
+        $router->group(['middleware' => ['web'], 'prefix' => 'storage'], function () use ($router) {
+            $router->get('_thumbs/{table}/{dir}/{id}/{field}/{mark}/{filename}.{ext}', [
+                \TCG\Voyager\Http\Controllers\ThumbsController::class, 'generateThumb'
+            ])->name('voyager.thumbs.generate');
+            
+            $router->get('_thumbs/{table}/{dir}/{id}/gallery/{field}/{mark}/{filename}.{ext}', [
+                \TCG\Voyager\Http\Controllers\ThumbsController::class, 'generateGalleryThumb'
+            ])->name('voyager.thumbs.gallery');
+            
+            $router->get('_thumbs/placeholders/{mark}.{ext}', [
+                \TCG\Voyager\Http\Controllers\ThumbsController::class, 'generatePlaceholder'
+            ])->name('voyager.thumbs.placeholder');
+        });
     }
 }

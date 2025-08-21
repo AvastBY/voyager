@@ -5,10 +5,12 @@ namespace TCG\Voyager\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use TCG\Voyager\Traits\Translatable;
+use TCG\Voyager\Traits\Thumbs;
 
 class Page extends Model
 {
     use Translatable;
+    use Thumbs;
 
     protected $translatable = ['title', 'slug', 'body'];
 

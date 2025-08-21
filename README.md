@@ -51,6 +51,22 @@ After creating your new Laravel application you can include the Voyager package 
 composer require tcg/voyager
 ```
 
+### 1.1. Install Thumbs Module (Optional)
+
+Для установки модуля создания thumbnails выполните:
+
+```bash
+php artisan voyager:install-thumbs
+```
+
+Этот модуль добавляет:
+- Управление настройками thumbnails в админке
+- Автоматическую генерацию thumbnails с поддержкой Intervention Image 3.0
+- Trait для удобного использования в моделях
+- Поддержку галерей и placeholders
+
+Подробная документация: [THUMBS_README.md](THUMBS_README.md)
+
 > If you are installing this on Laravel 10, we are working on getting a permanent release available; however, you can still use this with Larvel 10 by requiring the following:
 
 ```bash

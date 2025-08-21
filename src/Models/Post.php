@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\Auth;
 use TCG\Voyager\Facades\Voyager;
 use TCG\Voyager\Traits\Resizable;
 use TCG\Voyager\Traits\Translatable;
+use TCG\Voyager\Traits\Thumbs;
 
 class Post extends Model
 {
     use Translatable;
     use Resizable;
+    use Thumbs;
 
     protected $translatable = ['title', 'seo_title', 'excerpt', 'body', 'slug', 'meta_description', 'meta_keywords'];
 
