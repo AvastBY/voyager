@@ -75,6 +75,12 @@ class Menu extends Model
 
         if ($menuName == 'admin' && $type == '_json') {
             $items = static::processItems($items);
+        }else{
+        	$items = static::correctMenuItems($items);
+        	
+        	if (config('voyager.multilingual.enabled')) {
+				$items = static::translateItems($items);
+			}
         }
 
         if ($type == 'admin') {
@@ -94,7 +100,7 @@ class Menu extends Model
         if ($type === '_json') {
             return $items;
         }
-
+	
         return new \Illuminate\Support\HtmlString(
             \Illuminate\Support\Facades\View::make($type, ['items' => $items, 'options' => $options])->render()
         );
@@ -158,4 +164,70 @@ class Menu extends Model
 
         return $items->values();
     }
+    
+	protected static function translateItems($items)
+	{
+		// Eagerload Translations
+		if (config('voyager.multilingual.enabled')) {
+			$items->load('translations');
+		}
+	
+		if($items->isNotEmpty()) {
+			foreach ($items as $key => $it) {
+				self::translateMenuItem($it);
+			}
+		}
+	
+		return $items->values();
+	}
+	
+	public static function translateMenuItem($item){
+		$item->title = $item->getTranslatedAttribute('title');
+		
+		if($item->children->isNotEmpty()){
+			foreach ($item->children as $key => $it) {
+				self::translateMenuItem($it);
+			}
+		}
+	}
+	
+	
+	protected static function correctMenuItems($items)
+	{
+		if($items->isNotEmpty()) {
+			foreach ($items as $key => $it) {
+				self::correctMenuItem($it);
+			}
+		}
+	
+		return $items->values();
+	}
+	
+	
+	public static function correctMenuItem($item){
+		if (function_exists('correct_menu_url')) {
+			$item->url = correct_menu_url($item->url);
+		}
+		
+		$item->active = self::isActiveUrl($item->url);
+		
+		if($item->children->isNotEmpty()){
+			foreach ($item->children as $key => $it) {
+				self::correctMenuItem($it);
+			}
+		}
+	}
+	
+	public static function isActiveUrl($url) {
+		$url = str_replace(config('app.url'), '', $url);
+		if($url != '/') $url .= '*';
+		$v1 = $url;
+		$v2 = app()->getLocale().$url;
+		if($url != '/' && substr($v1,0,1) == '/'){
+			$v1 = substr($url, 1);
+		}
+
+		return (request()->is($v1) || request()->is($v2));
+	}
+	
 }

@@ -75,6 +75,7 @@ class ThumbsController extends Controller
     public static function getFieldValue($id, $table, $field)
     {
         $model_name = Str::studly(Str::singular($table));
+        if($table == 'composites') $model_name = 'CompositeBlock';
         if($model_name && class_exists($model_class = config('voyager.models.namespace').$model_name ?? 'App\\Models\\'.$model_name)){
             $model = $model_class::where('id', (int) $id)->first();
             if(!$model) return abort(404);
@@ -124,18 +125,20 @@ class ThumbsController extends Controller
 				}
 			}
 
-            if ($thumbModel->canvas_color) {
-                $thumbnail = $thumbnail->resizeCanvas($tW, $tH, 'center', $thumbModel->canvas_color);
-            }else {
-                $thumbnail = $thumbnail->resizeCanvas($tW, $tH, 'center');
-            }
-        }else{
-            $kW = $tW/$image->width();
-            $kH = $tH/$image->height();
-            $k = $kW;
-            if($kH < $kW) $k = $kH;
-            
-            if($thumbModel->upsize){
+			if ($thumbModel->canvas_color) {
+				$thumbnail = $thumbnail->resizeCanvas($tW, $tH, $thumbModel->canvas_color, 'center');
+			}else {
+				$canvasColor = 'eee';
+				if($ext == 'png') $canvasColor = 'rgba(0, 0, 0, 0)';
+				$thumbnail = $thumbnail->resizeCanvas($tW, $tH, $canvasColor, 'center');
+			}
+		}else{
+			$kW = $tW/$image->width();
+			$kH = $tH/$image->height();
+			$k = $kW;
+			if($kH < $kW) $k = $kH;
+			
+			if($thumbModel->upsize){
 				$thumbnail = $image->resize(round($k * $image->width()), round($k * $image->height()));
 			}else{
 				if($image->width() > $tW || $image->height() > $tH){
@@ -158,7 +161,8 @@ class ThumbsController extends Controller
         }
 
         $quality = $thumbModel->quality ?? 90;
-        $encoded = $thumbnail->toJpeg($quality);
+		$encoded = $thumbnail->encodeByExtension($ext, $quality);
+		
         Storage::disk('public')->put($path, $encoded);
 
         return response($encoded)->header('Content-Type', 'image/'.$ext);

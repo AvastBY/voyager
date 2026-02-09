@@ -205,16 +205,25 @@
         .voyager .settings .nav-tabs > li > a:hover{
             background-color:#fff !important;
         }
+        /*.panel-heading[data-locale]:not(.active),*/
+        /*.panel-body[data-locale]:not(.active),*/
+        /*hr[data-locale]:not(.active){*/
+        /*	display: none;*/
+        /*}*/
     </style>
 @stop
+
+@php($isModelTranslatable = config('voyager.multilingual.enabled'))
 
 @section('page_header')
     <h1 class="page-title">
         <i class="voyager-settings"></i> {{ __('voyager::generic.settings') }}
     </h1>
+{{--    @include('voyager::multilingual.language-selector')--}}
 @stop
 
 @section('content')
+	
     <div class="container-fluid">
         @include('voyager::alerts')
         @if(config('voyager.show_dev_tips'))
@@ -224,7 +233,8 @@
         </div>
         @endif
     </div>
-
+    
+	
     <div class="page-content settings container-fluid">
         <form action="{{ route('voyager.settings.update') }}" method="POST" enctype="multipart/form-data">
             {{ method_field("PUT") }}
@@ -245,9 +255,14 @@
                         @foreach($settings as $group => $group_settings)
                         <div id="{{ \Illuminate\Support\Str::slug($group) }}" class="tab-pane fade in @if($group == $active) active @endif">
                             @foreach($group_settings as $setting)
-                            <div class="panel-heading">
+                            <div class="panel-heading"  @if($setting->multilingual) data-locale="{{ $setting->locale }}" @endif>
                                 <h3 class="panel-title">
-                                    {{ $setting->display_name }} @if(config('voyager.show_dev_tips'))<code>setting('{{ $setting->key }}')</code>@endif
+                                    {{ $setting->display_name }} 
+                                    @if(config('voyager.show_dev_tips'))<code>setting('{{ $setting->key }}')</code>@endif
+                                    @if($setting->multilingual)
+                                    	<span class="label label-primary">{{ $setting->locale }}</span>
+									@endif
+                                   
                                 </h3>
                                 <div class="panel-actions">
                                     <a href="{{ route('voyager.settings.move_up', $setting->id) }}">
@@ -265,20 +280,20 @@
                                 </div>
                             </div>
 
-                            <div class="panel-body no-padding-left-right">
+                            <div class="panel-body no-padding-left-right"  @if($setting->multilingual)  data-locale="{{ $setting->locale }}" @endif>
                                 <div class="col-md-10 no-padding-left-right">
                                     @if ($setting->type == "text")
-                                        <input type="text" class="form-control" name="{{ $setting->key }}" value="{{ $setting->value }}">
+                                        <input type="text" class="form-control" name="{{ $setting->inputName }}" value="{{ $setting->value }}">
                                     @elseif($setting->type == "text_area")
-                                        <textarea class="form-control" name="{{ $setting->key }}">{{ $setting->value ?? '' }}</textarea>
+                                        <textarea class="form-control" name="{{ $setting->inputName }}">{{ $setting->value ?? '' }}</textarea>
                                     @elseif($setting->type == "rich_text_box")
-                                        <textarea class="form-control richTextBox" name="{{ $setting->key }}">{{ $setting->value ?? '' }}</textarea>
+                                        <textarea class="form-control richTextBox" name="{{ $setting->inputName }}">{{ $setting->value ?? '' }}</textarea>
                                     @elseif($setting->type == "markdown_editor")
-                                        <textarea class="form-control easymde" name="{{ $setting->key }}">{{ $setting->value ?? '' }}</textarea>
+                                        <textarea class="form-control easymde" name="{{ $setting->inputName }}">{{ $setting->value ?? '' }}</textarea>
                                     @elseif($setting->type == "code_editor")
                                         <?php $options = json_decode($setting->details); ?>
-                                        <div id="{{ $setting->key }}" data-theme="{{ @$options->theme }}" data-language="{{ @$options->language }}" class="ace_editor min_height_400" name="{{ $setting->key }}">{{ $setting->value ?? '' }}</div>
-                                        <textarea name="{{ $setting->key }}" id="{{ $setting->key }}_textarea" class="hidden">{{ $setting->value ?? '' }}</textarea>
+                                        <div id="{{ $setting->key }}" data-theme="{{ @$options->theme }}" data-language="{{ @$options->language }}" class="ace_editor min_height_400" name="{{ $setting->inputName }}">{{ $setting->value ?? '' }}</div>
+                                        <textarea name="{{ $setting->inputName }}" id="{{ $setting->key }}_textarea" class="hidden">{{ $setting->value ?? '' }}</textarea>
                                     @elseif($setting->type == "image" || $setting->type == "file")
                                         @if(isset( $setting->value ) && !empty( $setting->value ) && Storage::disk(config('voyager.storage.disk'))->exists($setting->value))
                                             <div class="img_settings_container">
@@ -298,11 +313,11 @@
                                                 @endforeach
                                             @endif
                                         @endif
-                                        <input type="file" name="{{ $setting->key }}">
+                                        <input type="file" name="{{ $setting->inputName }}">
                                     @elseif($setting->type == "select_dropdown")
                                         <?php $options = json_decode($setting->details); ?>
                                         <?php $selected_value = (isset($setting->value) && !empty($setting->value)) ? $setting->value : NULL; ?>
-                                        <select class="form-control" name="{{ $setting->key }}">
+                                        <select class="form-control" name="{{ $setting->inputName }}">
                                             <?php $default = (isset($options->default)) ? $options->default : NULL; ?>
                                             @if(isset($options->options))
                                                 @foreach($options->options as $index => $option)
@@ -319,7 +334,7 @@
                                             @if(isset($options->options))
                                                 @foreach($options->options as $index => $option)
                                                     <li>
-                                                        <input type="radio" id="option-{{ $index }}" name="{{ $setting->key }}"
+                                                        <input type="radio" id="option-{{ $index }}" name="{{ $setting->inputName }}"
                                                                value="{{ $index }}" @if($default == $index && $selected_value === NULL) checked @endif @if($selected_value == $index) checked @endif>
                                                         <label for="option-{{ $index }}">{{ $option }}</label>
                                                         <div class="check"></div>
@@ -331,9 +346,9 @@
                                         <?php $options = json_decode($setting->details); ?>
                                         <?php $checked = (isset($setting->value) && $setting->value == 1) ? true : false; ?>
                                         @if (isset($options->on) && isset($options->off))
-                                            <input type="checkbox" name="{{ $setting->key }}" class="toggleswitch" @if($checked) checked @endif data-on="{{ $options->on }}" data-off="{{ $options->off }}">
+                                            <input type="checkbox" name="{{ $setting->inputName }}" class="toggleswitch" @if($checked) checked @endif data-on="{{ $options->on }}" data-off="{{ $options->off }}">
                                         @else
-                                            <input type="checkbox" name="{{ $setting->key }}" @if($checked) checked @endif class="toggleswitch">
+                                            <input type="checkbox" name="{{ $setting->inputName }}" @if($checked) checked @endif class="toggleswitch">
                                         @endif
                                     @endif
                                 </div>
@@ -345,9 +360,7 @@
                                     </select>
                                 </div>
                             </div>
-                            @if(!$loop->last)
-                                <hr>
-                            @endif
+							<hr data-locale="{{ $setting->locale }}">
                             @endforeach
                         </div>
                         @endforeach
@@ -378,7 +391,7 @@
                         <label for="key">{{ __('voyager::generic.key') }}</label>
                         <input type="text" class="form-control" name="key" placeholder="{{ __('voyager::settings.help_key') }}" required="required">
                     </div>
-                    <div class="col-md-3">
+                    <div class="@if($isModelTranslatable) col-md-2 @else col-md-3 @endif">
                         <label for="type">{{ __('voyager::generic.type') }}</label>
                         <select name="type" class="form-control" required="required">
                             <option value="">{{ __('voyager::generic.choose_type') }}</option>
@@ -394,6 +407,7 @@
                             <option value="image">{{ __('voyager::form.type_image') }}</option>
                         </select>
                     </div>
+                    
                     <div class="col-md-3">
                         <label for="group">{{ __('voyager::settings.group') }}</label>
                         <select class="form-control group_select group_select_new" name="group">
@@ -402,6 +416,14 @@
                             @endforeach
                         </select>
                     </div>
+                    @if($isModelTranslatable)
+						<div class="col-md-1">
+							<label for="type">{{ __('voyager::form.multilingual') }}</label>
+							<div>
+								<input type="checkbox" name="multilingual" class="toggleswitch" data-on="Да" data-off="Нет">
+							</div>
+						</div>
+					@endif
                     <div class="col-md-12">
                         <a id="toggle_options"><i class="voyager-double-down"></i> {{ mb_strtoupper(__('voyager::generic.options')) }}</a>
                         <div class="new-settings-options">
@@ -517,5 +539,16 @@
             console.log(options_editor.getValue());
             options_textarea.value = options_editor.getValue();
         });
+
+		function showLangFields(locale){
+			$('[data-locale]').removeClass('active');
+			$('[data-locale="'+locale+'"]').addClass('active');
+		}
+		$('body').on('change', '[name="i18n_selector"]', function() {
+			var locale = $(this).attr('id');
+			showLangFields(locale);
+		});
+		
+		showLangFields('{{ config('voyager.multilingual.default') }}');
     </script>
 @stop

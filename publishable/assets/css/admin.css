@@ -131,3 +131,10 @@
 .multiple-images .img_settings_container.is-new img{
 	border: 1px solid #7db4ff !important;
 }
+
+.color-input-wrapper{
+	display: flex;
+}
+.color-input-wrapper [data-color_input_name] {
+	margin-right: 10px;
+}

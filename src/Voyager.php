@@ -226,22 +226,33 @@ class Voyager
             }
 
             foreach (self::model('Setting')->orderBy('order')->get() as $setting) {
-                $keys = explode('.', $setting->key);
-                @$this->setting_cache[$keys[0]][$keys[1]] = $setting->value;
+            	@$this->setting_cache[$setting->inputName] = $setting->value;
+//                $keys = explode('.', $setting->key);
+//                
+//				if(count($keys) == 2){
+//					@$this->setting_cache[$keys[0]][$keys[1]] = $setting->value;
+//				}else{
+//					@$this->setting_cache[$keys[0]][$keys[1]][$keys[2]] = $setting->value;
+//				}
+                
 
                 if ($globalCache) {
                     Cache::tags('settings')->forever($setting->key, $setting->value);
                 }
             }
         }
-
-        $parts = explode('.', $key);
-
-        if (count($parts) == 2) {
-            return @$this->setting_cache[$parts[0]][$parts[1]] ?: $default;
-        } else {
-            return @$this->setting_cache[$parts[0]] ?: $default;
+        if(config('voyager.multilingual.enabled')) {
+        	$langKey = $key.'.'.app()->getLocale();
+        	if(array_key_exists($langKey, $this->setting_cache)) return @$this->setting_cache[$langKey] ?: $default;
         }
+        
+        return @$this->setting_cache[$key] ?: $default;
+//        $parts = explode('.', $key);
+//        if (count($parts) == 2) {
+//            return @$this->setting_cache[$parts[0]][$parts[1]] ?: $default;
+//        } else {
+//            return @$this->setting_cache[$parts[0]] ?: $default;
+//        }
     }
 
     public function image($file, $default = '')

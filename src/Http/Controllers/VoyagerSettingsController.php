@@ -15,7 +15,7 @@ class VoyagerSettingsController extends Controller
         $this->authorize('browse', Voyager::model('Setting'));
 
         $data = Voyager::model('Setting')->orderBy('order', 'ASC')->get();
-
+		
         $settings = [];
         $settings[__('voyager::settings.group_general')] = [];
         foreach ($data as $d) {
@@ -69,7 +69,19 @@ class VoyagerSettingsController extends Controller
         $request->merge(['value' => '']);
         $request->merge(['key' => $key]);
 
-        Voyager::model('Setting')->create($request->except('setting_tab'));
+		if(config('voyager.multilingual.enabled') && request()->input('multilingual')){
+			$locales = config('voyager.multilingual.locales');
+			
+			foreach ($locales as $locale) {
+				$data = $request->except('setting_tab');
+				$data['multilingual'] = 1;
+				$data['locale'] = $locale;
+				
+				Voyager::model('Setting')->create($data);
+			}
+		}else{
+			Voyager::model('Setting')->create($request->except('setting_tab'));
+		}
 
         request()->flashOnly('setting_tab');
 
@@ -85,11 +97,11 @@ class VoyagerSettingsController extends Controller
         $this->authorize('edit', Voyager::model('Setting'));
 
         $settings = Voyager::model('Setting')->all();
-
+        
         foreach ($settings as $setting) {
             $content = $this->getContentBasedOnType($request, 'settings', (object) [
                 'type'    => $setting->type,
-                'field'   => str_replace('.', '_', $setting->key),
+                'field'   => str_replace('.', '_', $setting->inputName),
                 'group'   => $setting->group,
             ], $setting->details);
 
@@ -106,9 +118,10 @@ class VoyagerSettingsController extends Controller
             $setting->group = $request->input(str_replace('.', '_', $setting->key).'_group');
             $setting->key = implode('.', [Str::slug($setting->group), $key]);
             $setting->value = $content;
+           
             $setting->save();
         }
-
+        
         request()->flashOnly('setting_tab');
 
         return back()->with([

@@ -14,6 +14,6 @@
         data-on="{{ $options->on }}" {!! $checked ? 'checked="checked"' : '' !!}
         data-off="{{ $options->off }}">
 @else
-    <input type="checkbox" name="{{ $row->field }}" class="{{ $class }}"
+    <input type="checkbox" name="{{ $row->field }}" class="{{ $class }}" data-on="Вкл" data-off="Выкл" 
         @if($checked) checked @endif>
 @endif

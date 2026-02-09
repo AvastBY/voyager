@@ -85,7 +85,7 @@
             <label>{{ __('voyager::database.relationship.pivot_table') }}:</label>
             <select name="relationship_pivot_table_{{ $relationship['field'] }}" class="select2">
                 @foreach($tables as $tbl)
-                    <option value="{{ $tbl }}" @if(isset($relationshipDetails->pivot_table) && $relationshipDetails->pivot_table == $tbl) selected="selected" @endif>{{ \Illuminate\Support\Str::singular(ucfirst($tbl)) }}</option>
+                    <option value="{{ $tbl }}" @if(isset($relationshipDetails->pivot_table) && $relationshipDetails->pivot_table == $tbl) selected="selected" @endif>{{ $tbl }}</option>
                 @endforeach
             </select>
         </div>

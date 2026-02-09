@@ -118,7 +118,7 @@ if (\Illuminate\Support\Str::startsWith(Auth::user()->avatar, 'http://') || \Ill
 <!-- Javascript Libs -->
 
 
-<script type="text/javascript" src="{{ voyager_asset('js/app.js') }}"></script>
+<script type="text/javascript" src="{{ voyager_asset('js/app.js').'&t='.time() }}"></script>
 <script type="text/javascript" src="{{ voyager_asset('js/sortable.js') }}"></script>
 <script type="text/javascript" src="{{ voyager_asset('js/admin.js') }}"></script>
 

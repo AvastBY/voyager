@@ -30,7 +30,9 @@ if (!function_exists('get_field_translations')) {
      */
     function get_field_translations($model, $field, $rowType = '', $stripHtmlTags = false)
     {
-        $_out = $model->getTranslationsOf($field);
+//        $_out = $model->getTranslationsOf($field);
+        $_out = $model->getTranslationsOf($field, null, false);
+        
 
         if ($stripHtmlTags && $rowType == 'rich_text_box') {
             foreach ($_out as $language => $value) {

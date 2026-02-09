@@ -241,10 +241,11 @@ class VoyagerBreadController extends Controller
     public function addRelationship(Request $request)
     {
         $relationshipField = $this->getRelationshipField($request);
-
-        if (!class_exists($request->relationship_model)) {
+		$modelName = $request->relationship_model;
+		if(!$modelName) $modelName = config('voyager.models.namespace') . Str::studly(Str::singular($request->relationship_table));
+        if (!class_exists($modelName)) {
             return back()->with([
-                'message'    => 'Model Class '.$request->relationship_model.' does not exist. Please create Model before creating relationship.',
+                'message'    => 'Model Class '.$modelName.' does not exist. Please create Model before creating relationship.',
                 'alert-type' => 'error',
             ]);
         }
@@ -259,7 +260,7 @@ class VoyagerBreadController extends Controller
 
             // Build the relationship details
             $relationshipDetails = [
-                'model'       => $request->relationship_model,
+                'model'       => $modelName,
                 'table'       => $request->relationship_table,
                 'type'        => $request->relationship_type,
                 'column'      => $relationship_column,

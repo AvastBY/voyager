@@ -428,7 +428,7 @@ class VoyagerDatabaseController extends Controller
                 }
             }
         }
-
+        
         return response()->json(collect(SchemaManager::describeTable($table))->merge($additional_attributes));
     }
 

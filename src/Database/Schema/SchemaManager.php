@@ -188,7 +188,7 @@ abstract class SchemaManager
                 }
 
                 return $columnArr;
-            });
+            })->keyBy('name');
         } catch (\Exception $e) {
             throw new \Exception("Error describing table '$tableName': " . $e->getMessage());
         }

@@ -16,4 +16,10 @@ class Setting extends Model
     protected $dispatchesEvents = [
         'updating' => SettingUpdated::class,
     ];
+    
+    public function getInputNameAttribute(){
+    	$key = $this->key;
+    	if($this->multilingual) $key .= '.'.$this->locale;
+		return $key;
+	}
 }

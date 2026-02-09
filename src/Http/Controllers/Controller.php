@@ -18,12 +18,15 @@ use TCG\Voyager\Http\Controllers\ContentTypes\MultipleCheckbox;
 use TCG\Voyager\Http\Controllers\ContentTypes\MultipleImage;
 use TCG\Voyager\Http\Controllers\ContentTypes\Password;
 use TCG\Voyager\Http\Controllers\ContentTypes\Relationship;
+use TCG\Voyager\Http\Controllers\ContentTypes\Repeater;
 use TCG\Voyager\Http\Controllers\ContentTypes\SelectMultiple;
 use TCG\Voyager\Http\Controllers\ContentTypes\Text;
 use TCG\Voyager\Http\Controllers\ContentTypes\Timestamp;
 use TCG\Voyager\Http\Controllers\ContentTypes\KeyValue;
 use TCG\Voyager\Http\Controllers\ContentTypes\ValuesList;
 use TCG\Voyager\Http\Controllers\ContentTypes\AttributedGallery;
+use TCG\Voyager\Http\Controllers\ContentTypes\Meta;
+use TCG\Voyager\Http\Controllers\ContentTypes\Svg;
 use TCG\Voyager\Traits\AlertsMessages;
 use Validator;
 
@@ -53,6 +56,10 @@ abstract class Controller extends BaseController
         // Pass $rows so that we avoid checking unused fields
         $request->attributes->add(['breadRows' => $rows->pluck('field')->toArray()]);
 
+
+		//fix translations
+		if(is_bread_translatable($data)) $this->fixTranslationsInputData($rows, $data, $request);
+		
         /*
          * Prepare Translations and Transform data
          */
@@ -269,7 +276,44 @@ abstract class Controller extends BaseController
 
         return $data;
     }
-
+	
+	function fixTranslationsInputData($rows, $data, $request){
+		foreach ($rows as $row) {
+			if ($row->type == 'meta') {
+				$transFields = $data->getTranslatableAttributes();
+				
+				if(in_array('meta', $transFields)) {
+					$meta = [];
+					$locales = config('voyager.multilingual.locales');
+					
+					$meta_titles = json_decode(request()->input('meta_title_i18n', ''), true);
+					$meta_description = json_decode(request()->input('meta_description_i18n', ''), true);
+					$meta_keywords = json_decode(request()->input('meta_keywords_i18n', ''), true);
+					foreach ($locales as $key => $locale) {
+						$langData = [];
+						$langData['title'] = $meta_titles[$locale] ?? '';
+						$langData['description'] = $meta_description[$locale] ?? '';
+						$langData['keywords'] = $meta_keywords[$locale] ?? '';
+						
+						$meta[$locale] = array_diff($langData, ['']) ? json_encode($langData) : '';
+						
+						if(config('voyager.multilingual.default', 'en') == $locale){
+							$request->merge(['meta_title' => $langData['title']]);
+							$request->merge(['meta_description' => $langData['description']]);
+							$request->merge(['meta_keywords' => $langData['keywords']]);
+						}
+					}
+					
+					unset($request['meta_title_i18n']);
+					unset($request['meta_description_i18n']);
+					unset($request['meta_keywords_i18n']);
+					
+					$request->merge(['meta_i18n' => json_encode($meta)]);
+				}
+			}
+		}
+	}
+	
     /**
      * Validates bread POST request.
      *
@@ -387,6 +431,15 @@ abstract class Controller extends BaseController
 			/********** ATTRIBUTED GALLERY TYPE **********/
             case 'attributed_gallery':
                 return (new AttributedGallery($request, $slug, $row, $options))->handle();
+			/********** META TYPE **********/
+			case 'meta':
+                return (new Meta($request, $slug, $row, $options))->handle();
+			/********** SVG GALLERY TYPE **********/
+			case 'svg':
+                return (new Svg($request, $slug, $row, $options))->handle();
+           /********** REPEATER TYPE **********/
+			case 'repeater':
+                return (new Repeater($request, $slug, $row, $options))->handle();
             /********** ALL OTHER TEXT TYPE **********/
             default:
                 return (new Text($request, $slug, $row, $options))->handle();

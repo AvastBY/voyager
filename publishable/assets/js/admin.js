@@ -1,3 +1,13 @@
+document.addEventListener('change', e => {
+	if( e.target.closest('[data-color_input_name]') ) {
+		changeColorInputState(e.target.closest('[data-color_input_name]'));
+	}
+});
+
+function changeColorInputState(cbx){
+	var input = cbx.closest('form').querySelector('[name="'+cbx.getAttribute('data-color_input_name')+'"]');
+	input.disabled = cbx.checked ? false : true;
+}
 
 document.addEventListener('submit', e => {
 	if( e.target.closest('._aform') ) {

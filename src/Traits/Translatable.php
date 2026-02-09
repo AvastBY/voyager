@@ -347,7 +347,7 @@ trait Translatable
 
         // Translatable Fields
         $transFields = $this->getTranslatableAttributes();
-
+		
         $fields = !empty($request->attributes->get('breadRows')) ? array_intersect($request->attributes->get('breadRows'), $transFields) : $transFields;
 
         foreach ($fields as $field) {
@@ -371,7 +371,6 @@ trait Translatable
 
         // Remove language selector input
         unset($request['i18n_selector']);
-
         return $translations;
     }
 
