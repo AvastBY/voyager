@@ -1,7 +1,7 @@
 {
   "name": "avast/voyager",
   "description": "A Laravel Admin Package for The Control Group to make your life easier and steer your project in the right direction",
-  "version": "12.3.0",
+  "version": "12.5.0",
   "keywords": [
     "laravel",
     "admin",
