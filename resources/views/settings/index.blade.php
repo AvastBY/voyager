@@ -262,8 +262,11 @@
                                     @if($setting->multilingual)
                                     	<span class="label label-primary">{{ $setting->locale }}</span>
 									@endif
-                                   
                                 </h3>
+                                <?php $options = json_decode($setting->details); ?>
+								@if(!empty($options->description))
+									<p>{{ $options->description }}</p>
+								@endif
                                 <div class="panel-actions">
                                     <a href="{{ route('voyager.settings.move_up', $setting->id) }}">
                                         <i class="sort-icons voyager-sort-asc"></i>
@@ -350,6 +353,19 @@
                                         @else
                                             <input type="checkbox" name="{{ $setting->inputName }}" @if($checked) checked @endif class="toggleswitch">
                                         @endif
+									@elseif($setting->type == "key_value")
+										<?php
+											$fieldName = str_replace('.', '_', $setting->inputName);
+											$dataTypeContent = (object) [
+												$fieldName => $setting->value ?? ''
+											];
+											$row = (object) [
+												'type' => $setting->type,
+												'field'   => $fieldName,
+												'group'   => $setting->group,
+											];
+										?>
+                                        @include('voyager::formfields.key_value', ['row' => $row, 'dataTypeContent' => $dataTypeContent])
                                     @endif
                                 </div>
                                 <div class="col-md-2 no-padding-left-right">
@@ -405,6 +421,7 @@
                             <option value="select_dropdown">{{ __('voyager::form.type_selectdropdown') }}</option>
                             <option value="file">{{ __('voyager::form.type_file') }}</option>
                             <option value="image">{{ __('voyager::form.type_image') }}</option>
+                            <option value="key_value">Ключ - значение</option>
                         </select>
                     </div>
                     
