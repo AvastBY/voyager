@@ -176,8 +176,15 @@ if(document.querySelectorAll('.multiple-images').length){
 document.addEventListener('click', function(e){
     var dz = e.target.closest('.js-file-dropzone');
     if(!dz) return;
+    
     var inputName = dz.getAttribute('data-target-input');
-    var fileInput = document.querySelector('[data-load-photo="true"][name="'+inputName+'"]');
+    var form = e.target.closest('form');
+    if(form){
+		var fileInput = form.querySelector('[data-load-photo="true"][name="'+inputName+'"]');
+    }else{
+		var fileInput = document.querySelector('[data-load-photo="true"][name="'+inputName+'"]');
+    }
+    
     if(fileInput){ fileInput.click(); }
 });
 

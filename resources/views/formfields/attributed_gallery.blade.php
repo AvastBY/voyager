@@ -50,10 +50,15 @@ document.addEventListener('DOMContentLoaded', function(){
         document.querySelectorAll('[data-load-photo="true"]').forEach( input => {
 
             input.addEventListener('change', (e) => {
-
+				let form = input.closest('form');
                 let files = input.files;
                 let name = input.getAttribute('name').replace('[]','');
-                let $row = document.querySelector('.js-gallery-list[data-id="'+name+'"]');
+                if(form){
+                	var $row = form.querySelector('.js-gallery-list[data-id="'+name+'"]');
+                }else{
+                	var $row = document.querySelector('.js-gallery-list[data-id="'+name+'"]');
+                }
+                
                 if(!$row.dataset.newIndex){ $row.dataset.newIndex = '0'; }
                 let renderedNew = $row.querySelectorAll('.img_settings_container.is-new').length;
 
