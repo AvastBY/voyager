@@ -80,11 +80,6 @@ document.addEventListener('submit', e => {
 					return response;
 				}
 	
-				
-				if($form.getAttribute('data-ytarget')){
-					sendYandexGoal($form.getAttribute('data-ytarget'));
-				}
-	
 				if($form.getAttribute('data-reset') == 1) {
 					$form.reset();
 				}
@@ -94,12 +89,11 @@ document.addEventListener('submit', e => {
 
 				if (response.href) {
 					var win = window.location.href = response.href;
-
 				} else if(response.message_html) {
 					if ($form.querySelector('._message')) {
 						$form.querySelector('._message').innerHTML = response.message_html;
 					} else {
-						showErrorMessage($form, response.message);
+						showErrorMessage(response.message);
 					}
 				} else {
 					if( $form.getAttribute('data-show-in-popup') ) {
@@ -107,11 +101,12 @@ document.addEventListener('submit', e => {
 						$responsePopup.classList.add('js-act');
 						$responsePopup.querySelector('[data-popup-message]').innerText = response.message;
 					} else {
-						showSuccessMessage($form, response.message);
+						showSuccessMessage(response.message);
 					}
 					
 					if($form.getAttribute('data-redirect')){
 						window.location.href = $form.getAttribute('data-redirect');
+						
 					}
 					setTimeout(function () {
 						if ($form.getAttribute('data-click')) {
@@ -123,12 +118,21 @@ document.addEventListener('submit', e => {
 					}, click_timeout);
 				}
 				
+				if (response.redirect) {
+					if(response.timeout){
+						setTimeout(function () {
+							window.location.href = response.redirect;
+						},response.timeout);
+					}else{
+						window.location.href = response.redirect;
+					}
+				}
+				
 				if($submit) $submit.classList.remove('loading');
 			}
 		).catch((error) => {
 			if($submit) $submit.classList.remove('loading');
-			// alertError.show(error);
-			showErrorMessage($form, error);
+			showErrorMessage(error);
 		});
 	}
 });

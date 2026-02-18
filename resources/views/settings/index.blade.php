@@ -366,6 +366,19 @@
 											];
 										?>
                                         @include('voyager::formfields.key_value', ['row' => $row, 'dataTypeContent' => $dataTypeContent])
+									@elseif($setting->type == "values_list")
+										<?php
+											$fieldName = str_replace('.', '_', $setting->inputName);
+											$dataTypeContent = (object) [
+												$fieldName => $setting->value ?? ''
+											];
+											$row = (object) [
+												'type' => $setting->type,
+												'field'   => $fieldName,
+												'group'   => $setting->group,
+											];
+										?>
+                                        @include('voyager::formfields.values_list', ['row' => $row, 'dataTypeContent' => $dataTypeContent])
                                     @endif
                                 </div>
                                 <div class="col-md-2 no-padding-left-right">
@@ -421,6 +434,7 @@
                             <option value="select_dropdown">{{ __('voyager::form.type_selectdropdown') }}</option>
                             <option value="file">{{ __('voyager::form.type_file') }}</option>
                             <option value="image">{{ __('voyager::form.type_image') }}</option>
+                            <option value="values_list">Список значений</option>
                             <option value="key_value">Ключ - значение</option>
                         </select>
                     </div>

@@ -228,7 +228,7 @@ class Voyager
             foreach (self::model('Setting')->orderBy('order')->get() as $setting) {
             	$value = $setting->value;
             	
-            	if($setting->type == 'key_value') $value = json_decode($setting->value);
+            	if(in_array($setting->type, ['key_value', 'values_list'])) $value = json_decode($setting->value);
             	@$this->setting_cache[$setting->inputName] = $value;
 
                 if ($globalCache) {
