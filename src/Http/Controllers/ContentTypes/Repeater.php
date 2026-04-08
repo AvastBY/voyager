@@ -48,12 +48,18 @@ class Repeater extends BaseType
                     $model->row_id = $rowID;
                     $model = $this->setModelFields($model, $rowIndex, $rowID);
                     $model->save();
+                    
+                    $this->saveModelTranslations($model, $rowIndex, $rowID);
+                    
                     $storedIDs[] = $model->id;
                 } else {
                     // Update EXISTED ROWs (or delete)
                     $model = $inlineModel->findOrFail($requestedIDs[$rowIndex]);
                     $model = $this->setModelFields($model, $rowIndex, $rowID);
                     $model->save();
+                    
+                    $this->saveModelTranslations($model, $rowIndex, $rowID);
+                    
                     $storedIDs[] = $model->id;
                 }
             }
@@ -74,13 +80,12 @@ class Repeater extends BaseType
         }
     }
 
-    private function setModelFields($model, $rowIndex, $rowID = null)
-    {
-    	
-        $model->row_id = $rowID;
-        $model->order = $rowIndex;
-        foreach ($this->options->repeater->fields as $field_name => $field_data) {
-        
+	private function setModelFields($model, $rowIndex, $rowID = null)
+	{
+		$model->row_id = $rowID;
+		$model->order = $rowIndex;
+		foreach ($this->options->repeater->fields as $field_name => $field_data) {
+		
 			$dataRow = new DataRow();
 			$dataRow->field = $this->row->field.'_'.$field_name.'_'.$rowID;
 			$dataRow->display_name = $field_data->label ?? $field_data->display_name;
@@ -88,37 +93,87 @@ class Repeater extends BaseType
 			$dataRow->required = $field_data->required ?? 0;
 			$dataRow->details = $field_data->details ?? null;
 			$dataRow->placeholder = $field_data->placeholder ?? 0;
-            
-//            if($field_data->type == 'svg'){
-//            	$data = (new SvgContentType($this->request, 'repeater_'.$this->row->field, $dataRow, []))->handle();
-//            }else{
-//            	$controller = new \Avast\Formfields\Http\Controllers\FormFieldsController();
-//				$data = $controller->getContentBasedOnType($this->request, 'repeater_'.$this->row->field, $dataRow);
-////            	$data = \TCG\Voyager\Http\Controllers\Controller::getContentBasedOnType($this->request, 'repeater_'.$this->row->field, $dataRow);
-//            }
-            
-            $controller = new \TCG\Voyager\Http\Controllers\VoyagerBaseController();
+			
+			if(is_class_field_translatable($model, $field_name)){
+				$defaultLang = config('voyager.multilingual.default');
+				$dataRow->field = $dataRow->field.'.'.$defaultLang;
+			}
+			
+			$controller = new \TCG\Voyager\Http\Controllers\VoyagerBaseController();
 			$data = $controller->getContentBasedOnType($this->request, 'repeater_'.$this->row->field, $dataRow);
-            
-            if(in_array($field_data->type, ['image', 'svg', 'file'])){
+			
+			if(in_array($field_data->type, ['image', 'svg', 'file'])){
 				if($data){
 					$model->{$field_name} = $data;
 				}else if($this->request->input($this->row->field.'_'.$field_name.'_delete_'.$rowID) == 1){
 					$model->{$field_name} = '';
 				}
-            }else{
-            	$model->{$field_name} = $data;
-            }
-//        	$model->{$field_name} = \TCG\Voyager\Http\Controllers\Controller::getContentBasedOnType($this->request, 'repeater_'.$this->row->field, $dataRow);
-//            if ($field_data->type === 'media') {
-//                $model->{$field_name} = $this->row->field . '_' . $field_name . '_' . $rowID;
-//            } elseif ($field_data->type === 'checkbox') {
-//                $model->{$field_name} = $this->request->input($this->row->field.'_'.$field_name.'_'.$rowID) === 'on'? 1 : 0;
-//            } else {
-//                $model->{$field_name} = $this->request->input($this->row->field.'_'.$field_name.'_'.$rowID);
-//            }
-        }
-        return $model;
-    }
+			}else{
+				$model->{$field_name} = $data;
+			}
+		}
+		
+		return $model;
+	}
+	
+	private function saveModelTranslations($model, $rowIndex, $rowID = null){
+		if(!empty($field_data->translatable) && config('voyager.multilingual.enabled')) return false;
+		
+		$model->row_id = $rowID;
+		$model->order = $rowIndex;
+		foreach ($this->options->repeater->fields as $field_name => $field_data) {
+		
+			$dataRow = new DataRow();
+			$dataRow->field = $this->row->field.'_'.$field_name.'_'.$rowID;
+			$dataRow->display_name = $field_data->label ?? $field_data->display_name;
+			$dataRow->type = $field_data->type;
+			$dataRow->required = $field_data->required ?? 0;
+			$dataRow->details = $field_data->details ?? null;
+			$dataRow->placeholder = $field_data->placeholder ?? 0;
+			
+			$controller = new \TCG\Voyager\Http\Controllers\VoyagerBaseController();
+			
+			if(is_class_field_translatable($model, $field_name)){
+				$defaultLang = config('voyager.multilingual.default');
+				$langs = config('voyager.multilingual.locales');
+				
+				$langData = [];
+				foreach ($langs as $lang) {
+					if($lang == $defaultLang) continue;
+					
+					$_dataRow = clone($dataRow);
+					$_dataRow->field = $dataRow->field.'.'.$lang;
+					$langData[$lang] = $controller->getContentBasedOnType($this->request, 'repeater_'.$this->row->field, $_dataRow);
+				}
+				
+				if($langData){
+					foreach ($langData as $lang => $value) {
+						$translation = Voyager::model('Translation')->where([
+							'locale' => $lang,
+							'table_name' => $model->getTable(),
+							'foreign_key' => $model->id,
+							'column_name' => $field_name,
+						])->first();
+							
+						if($value){
+							if(!$translation) $translation = Voyager::model('Translation');
+							
+							$translation->locale = $lang;
+							$translation->table_name = $model->getTable();
+							$translation->foreign_key = $model->id;
+							$translation->column_name = $field_name;
+							$translation->value = $value;
+							
+							$translation->save();
+						}else{
+							if($translation) $translation->delete();
+						}
+					}
+				}
+			}
+		}
+		
+		return $model;
+	}
 
 }

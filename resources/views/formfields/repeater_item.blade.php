@@ -11,14 +11,41 @@
 		<div class="row">
 			@foreach($repeater_fields as $key_field => $field)
 				@php
-					$fieldIdAttr = implode('_', [$block_id ?? 0, $key_field, $row_field, $row_id?? '%id%'])
+					$field->input_id = implode('_', [$block_id ?? 0, $key_field, $row_field, $row_id?? '%id%']);
+					$field->input_name = implode('_', [$row_field, $key_field, $row_id ?? '%id%']);
+					$field->value = $source[$key_field] ?? 11;
+					$sourceModelName = $row->details->repeater->source;
+					$translatable = is_class_field_translatable($row->details->repeater->source, $field->field);
+					$sourceModel = $source ? $sourceModelName::where('id', $source['id'])->first() : null;
 				@endphp
+				
 				<div class="form-group {{ isset($field->class)? $field->class : 'col-md-12' }}">
-					<label class="adv-inline-set-label" for="{{ $fieldIdAttr }}">{{$field->display_name}}</label>
-					@if(!empty($field->description))
-						<div class="adv-inline-set-description">{!! $field->description !!}</div>
-					@endif
+					
+					@if($translatable && config('voyager.multilingual.enabled'))
+						@foreach(config('voyager.multilingual.locales') as $lang)
+							@php
+								$_field = clone($field);
+								$_field->input_id = $field->input_name.'_'.$lang;
+								$_field->input_name = $field->input_name.'['.$lang.']';
+								$_field->value = $source ? $sourceModel->getTranslatedAttribute($field->field, $lang, config('voyager.multilingual.default')) : null;
+							@endphp
+							
+							<div data-locale="{{ $lang }}">
+								<label class="adv-inline-set-label" for="{{ $field->input_id }}">{{$field->display_name}} <span class="label label-primary">{{ $lang }}</span></label>
+								@if(!empty($field->description))
+									<div class="adv-inline-set-description">{!! $field->description !!}</div>
+								@endif
+						
+								@include('voyager::formfields.repeater_fields.'.$field->type, ['field' => $_field])
+							</div>
+						@endforeach
+					@else
+						<label class="adv-inline-set-label" for="{{ $field->input_id }}">{{$field->display_name}}</label>
+						@if(!empty($field->description))
+							<div class="adv-inline-set-description">{!! $field->description !!}</div>
+						@endif
 						@include('voyager::formfields.repeater_fields.'.$field->type)
+					@endif
 				</div>
 				@php
 					$composite = $row->details->repeater->composite ?? false;
