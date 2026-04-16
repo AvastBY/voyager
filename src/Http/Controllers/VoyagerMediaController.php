@@ -21,7 +21,9 @@ class VoyagerMediaController extends Controller
 
     public function __construct()
     {
-        $this->filesystem = config('voyager.storage.disk');
+        // Media can use a different disk than the rest of Voyager.
+        // This is configured via `voyager.media_storage.disk` in your app.
+        $this->filesystem = config('voyager.media_storage.disk', config('voyager.storage.disk'));
     }
 
     public function index()
@@ -232,8 +234,6 @@ class VoyagerMediaController extends Controller
         $absolute_path = Storage::disk($this->filesystem)->path($request->upload_path);
 
         try {
-            $realPath = Storage::disk($this->filesystem)->path('/');
-
             $allowedMimeTypes = config('voyager.media.allowed_mimetypes', '*');
             if ($allowedMimeTypes != '*' && (is_array($allowedMimeTypes) && !in_array($request->file->getMimeType(), $allowedMimeTypes))) {
                 throw new Exception(__('voyager::generic.mimetype_not_allowed'));
@@ -259,74 +259,6 @@ class VoyagerMediaController extends Controller
 
             $file = $request->file->storeAs($request->upload_path, $name.'.'.$extension, $this->filesystem);
             $file = preg_replace('#/+#', '/', $file);
-
-            $imageMimeTypes = [
-                'image/jpeg',
-                'image/png',
-                'image/gif',
-                'image/bmp',
-                'image/svg+xml',
-            ];
-            if (in_array($request->file->getMimeType(), $imageMimeTypes)) {
-                $content = Storage::disk($this->filesystem)->get($file);
-                $image = Image::make($content);
-
-                if ($request->file->getClientOriginalExtension() == 'gif') {
-                    copy($request->file->getRealPath(), $realPath.$file);
-                } else {
-                    $image = $image->orientate();
-                    // Generate thumbnails
-                    if (property_exists($details, 'thumbnails') && is_array($details->thumbnails)) {
-                        foreach ($details->thumbnails as $thumbnail_data) {
-                            $type = $thumbnail_data->type ?? 'fit';
-                            $thumbnail = Image::make(clone $image);
-                            if ($type == 'fit') {
-                                $thumbnail = $thumbnail->fit(
-                                    $thumbnail_data->width,
-                                    ($thumbnail_data->height ?? null),
-                                    function ($constraint) {
-                                        $constraint->aspectRatio();
-                                    },
-                                    ($thumbnail_data->position ?? 'center')
-                                );
-                            } elseif ($type == 'crop') {
-                                $thumbnail = $thumbnail->crop(
-                                    $thumbnail_data->width,
-                                    $thumbnail_data->height,
-                                    ($thumbnail_data->x ?? null),
-                                    ($thumbnail_data->y ?? null)
-                                );
-                            } elseif ($type == 'resize') {
-                                $thumbnail = $thumbnail->resize(
-                                    $thumbnail_data->width,
-                                    ($thumbnail_data->height ?? null),
-                                    function ($constraint) use ($thumbnail_data) {
-                                        $constraint->aspectRatio();
-                                        if (!($thumbnail_data->upsize ?? true)) {
-                                            $constraint->upsize();
-                                        }
-                                    }
-                                );
-                            }
-                            if (
-                                property_exists($details, 'watermark') &&
-                                property_exists($details->watermark, 'source') &&
-                                property_exists($thumbnail_data, 'watermark') &&
-                                $thumbnail_data->watermark
-                            ) {
-                                $thumbnail = $this->addWatermarkToImage($thumbnail, $details->watermark);
-                            }
-                            $thumbnail_file = $request->upload_path.$name.'-'.($thumbnail_data->name ?? 'thumbnail').'.'.$extension;
-                            Storage::disk($this->filesystem)->put($thumbnail_file, $thumbnail->encode($extension, ($details->quality ?? 90))->encoded);
-                        }
-                    }
-                    // Add watermark to image
-                    if (property_exists($details, 'watermark') && property_exists($details->watermark, 'source')) {
-                        $image = $this->addWatermarkToImage($image, $details->watermark);
-                    }
-                    Storage::disk($this->filesystem)->put($file, $image->encode($extension, ($details->quality ?? 90))->encoded);
-                }
-            }
 
             $success = true;
             $message = __('voyager::media.success_uploaded_file');

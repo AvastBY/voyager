@@ -16,11 +16,17 @@ class ThumbsController extends Controller
     const SALT = 'A45Scj1381h13ba';
 
     protected $imageManager;
+    protected $thumbsDisk;
 
     public function __construct()
     {
         $this->imageManager = new ImageManager(new Driver());
+        $this->thumbsDisk = config('voyager.thumbs.storage.disk', config('voyager.storage.disk', 'public'));
     }
+    
+    public static function get(){
+		
+	}
 
     // Тумбса иконки
     public function generateThumb($table, $folder, $id, $field, $mark, $filename, $ext)
@@ -94,6 +100,10 @@ class ThumbsController extends Controller
 
     public static function createThumbnail($thumbModel, $img_path, $table, $folder, $id, $field, $mark, $filename, $ext, $is_gallery = false)
     {
+    	dump(public_path().'/storage/'.$img_path);
+    	dump(urldecode(Storage::disk('s3')->url($img_path)));
+    	dd(Storage::disk('s3')->exists($img_path));
+    	
         if(!file_exists(public_path().'/storage/'.$img_path)) abort(404);
 
         $imageManager = new ImageManager(new Driver());

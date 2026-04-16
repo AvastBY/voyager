@@ -1,4 +1,43 @@
 @section('media-manager')
+@php
+    /**
+     * For S3, calling Storage::disk('s3')->url('/') may trigger a GetObject request
+     * with an empty key (key=""), which breaks Voyager rendering.
+     * Here we build base URL from config only (no Storage calls).
+     */
+    $voyagerDisk = config('voyager.media_storage.disk', config('voyager.storage.disk'));
+    $voyagerMediaBaseUrl = '';
+    
+    $diskDriver = config("filesystems.disks.$voyagerDisk.driver");
+    if ($diskDriver === 's3') {
+        $s3Url = config("filesystems.disks.$voyagerDisk.url");
+        if (is_string($s3Url) && $s3Url !== '') {
+            $voyagerMediaBaseUrl = rtrim($s3Url, '/').'/';
+        } else {
+            $endpoint = config("filesystems.disks.$voyagerDisk.endpoint");
+            $bucket = config("filesystems.disks.$voyagerDisk.bucket");
+            $usePathStyle = (bool) config("filesystems.disks.$voyagerDisk.use_path_style_endpoint", false);
+
+            if (is_string($endpoint) && $endpoint !== '' && is_string($bucket) && $bucket !== '') {
+                $endpoint = rtrim($endpoint, '/');
+                if ($usePathStyle) {
+                    $voyagerMediaBaseUrl = $endpoint.'/'.$bucket.'/';
+                } else {
+                    $parts = parse_url($endpoint);
+                    $scheme = $parts['scheme'] ?? 'https';
+                    $host = $parts['host'] ?? '';
+                    $voyagerMediaBaseUrl = $host !== '' ? $scheme.'://'.$bucket.'.'.$host.'/' : $endpoint.'/';
+                }
+            }
+        }
+    } else {
+        try {
+            $voyagerMediaBaseUrl = rtrim(Storage::disk($voyagerDisk)->url('/'), '/').'/';
+        } catch (\Throwable $e) {
+            $voyagerMediaBaseUrl = '';
+        }
+    }
+@endphp
 <div>
     <div v-if="hidden_element" :id="'dd_'+this._uid" class="dd">
         <ol id="files" class="dd-list">
@@ -6,7 +45,7 @@
                 <div class="file_link selected" aria-hidden="true" data-toggle="tooltip" data-placement="auto" :title="file">
                     <div class="link_icon">
                         <template v-if="fileIs(file, 'image')">
-                            <div class="img_icon" :style="imgIcon('{{ Storage::disk(config('voyager.storage.disk'))->url('/') }}'+file)"></div>
+                            <div class="img_icon" :style="imgIcon('{{ $voyagerMediaBaseUrl }}'+file)"></div>
                         </template>
                         <template v-else-if="fileIs(file, 'video')">
                             <i class="icon voyager-video"></i>
