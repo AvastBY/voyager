@@ -58,58 +58,27 @@ class Image extends BaseType
         return $image;
     }
 
-    public function handle()
-    {
-        if ($this->request->hasFile($this->row->field)) {
-            $file = $this->request->file($this->row->field);
-
-            $path = $this->slug.DIRECTORY_SEPARATOR.date('FY').DIRECTORY_SEPARATOR;
-
-            $filename = $this->generateFileName($file, $path);
-
-            $image = $this->manager->read($file);
-            $image = $this->autoRotateImage($image);
-
-            $fullPath = $path.$filename.'.'.$file->getClientOriginalExtension();
-
-            $resize_width = null;
-            $resize_height = null;
-            if (isset($this->options->resize) && (
-                isset($this->options->resize->width) || isset($this->options->resize->height)
-            )) {
-                if (isset($this->options->resize->width)) {
-                    $resize_width = $this->options->resize->width;
-                }
-                if (isset($this->options->resize->height)) {
-                    $resize_height = $this->options->resize->height;
-                }
-            } else {
-                $resize_width = $image->width();
-                $resize_height = $image->height();
-            }
-
-            $resize_quality = isset($this->options->quality) ? intval($this->options->quality) : config('voyager.media.upload_image_quality', 75);
-
-            $encoder = $this->getEncoder($file->getClientOriginalExtension(), $resize_quality);
-            
-            $image = $image->resize($resize_width, $resize_height, function ($constraint) {
-                $constraint->aspectRatio();
-                if (isset($this->options->upsize) && !$this->options->upsize) {
-                    $constraint->upsize();
-                }
-            })->encode($encoder);
-
-            if ($this->is_animated_gif($file)) {
-                Storage::disk(config('voyager.storage.disk'))->put($fullPath, file_get_contents($file), 'public');
-                $fullPathStatic = $path.$filename.'-static.'.$file->getClientOriginalExtension();
-                Storage::disk(config('voyager.storage.disk'))->put($fullPathStatic, $image->toFilePointer(), 'public');
-            } else {
-                Storage::disk(config('voyager.storage.disk'))->put($fullPath, $image->toFilePointer(), 'public');
-            }
-
-            return $fullPath;
-        }
-    }
+	public function handle()
+	{
+		if ($this->request->hasFile($this->row->field)) {
+			$file = $this->request->file($this->row->field);
+	
+			$path = $this->slug.DIRECTORY_SEPARATOR.date('FY').DIRECTORY_SEPARATOR;
+	
+			$filename = $this->generateFileName($file, $path);
+	
+			$fullPath = $path.$filename.'.'.$file->getClientOriginalExtension();
+	
+			// Сохраняем файл как есть, без всякой обработки
+			Storage::disk(config('voyager.storage.disk'))->put(
+				$fullPath, 
+				file_get_contents($file), 
+				'public'
+			);
+	
+			return $fullPath;
+		}
+	}
 
     /**
      * @param \Illuminate\Http\UploadedFile $file
