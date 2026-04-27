@@ -4,25 +4,19 @@ namespace TCG\Voyager\Http\Controllers\ContentTypes;
 
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Drivers\Gd\Driver;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Encoders\JpegEncoder;
-use Intervention\Image\Encoders\PngEncoder;
-use Intervention\Image\Encoders\GifEncoder;
-use Intervention\Image\Encoders\WebpEncoder;
 
 class Image extends BaseType
 {
-    protected $manager;
+	protected $manager;
 
-    public function __construct($request, $slug, $row, $options)
-    {
-        parent::__construct($request, $slug, $row, $options);
-        $this->manager = new ImageManager(new Driver());
-    }
+	public function __construct($request, $slug, $row, $options)
+	{
+		parent::__construct($request, $slug, $row, $options);
+	}
 
 	public function handle()
 	{
+		
 		if ($this->request->hasFile($this->row->field)) {
 			$file = $this->request->file($this->row->field);
 	
@@ -40,7 +34,32 @@ class Image extends BaseType
 			);
 	
 			return $fullPath;
+		}else{
+			$file = $this->request->file($this->row->field);
+			
+			// Если файл есть, но есть ошибка загрузки
+			if ($file && $file->getError() !== UPLOAD_ERR_NO_FILE) {
+				$errorMessage = $this->getUploadErrorMessage($file->getError());
+				throw new \Exception("Ошибка загрузки файла '{$this->row->field}': {$errorMessage}");
+			}
 		}
+		
+		return null;
+	}
+	
+	private function getUploadErrorMessage($errorCode)
+	{
+		$messages = [
+			UPLOAD_ERR_INI_SIZE => 'размер файла превышает ' . ini_get('upload_max_filesize'),
+			UPLOAD_ERR_FORM_SIZE => 'размер файла превышает ограничение формы',
+			UPLOAD_ERR_PARTIAL => 'файл загружен частично',
+			UPLOAD_ERR_NO_FILE => 'файл не выбран',
+			UPLOAD_ERR_NO_TMP_DIR => 'нет временной папки',
+			UPLOAD_ERR_CANT_WRITE => 'ошибка записи на диск',
+			UPLOAD_ERR_EXTENSION => 'загрузка остановлена PHP расширением',
+		];
+		
+		return $messages[$errorCode] ?? "неизвестная ошибка (код: {$errorCode})";
 	}
 
     /**
