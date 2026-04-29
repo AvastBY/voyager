@@ -2,7 +2,7 @@
 @foreach($field->options as $value => $label)
     @php
     $default = isset($field->default) && $field->default === $value ? 'checked' : '';
-    $checked = isset($source[$key_field]) && $source[$key_field] === $value ? 'checked' : (empty($source[$key_field])? $default : '');
+    $checked = isset($source[$key_field]) && $source[$key_field] == $value ? 'checked' : (empty($source[$key_field])? $default : '');
     @endphp
     <div class="adv-inline-set-radio">
         <input class="adv-form-control"

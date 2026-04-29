@@ -17,6 +17,7 @@
 					$sourceModelName = $row->details->repeater->source;
 					$translatable = is_class_field_translatable($row->details->repeater->source, $field->field);
 					$sourceModel = $source ? $sourceModelName::where('id', $source['id'])->first() : null;
+					
 				@endphp
 				
 				<div class="form-group {{ isset($field->class)? $field->class : 'col-md-12' }}">
