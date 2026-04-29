@@ -7,13 +7,13 @@
     <div class="adv-inline-set-radio">
         <input class="adv-form-control"
                type="radio"
-               id="{{$value}}_{{$row_field}}_{{$key_field}}_{{$row_id?? '%id%'}}"
+               id="{{$value}}_{{ $field->input_id }}"
                name="{{$row_field}}_{{$key_field}}_{{$row_id?? '%id%'}}"
                data-field-type="{{$field->type}}"
                value="{{$value}}"
                {{ $checked }}
                @include('voyager::formfields.repeater_fields.attr')>
-        <label for="{{$value}}_{{$row_field}}_{{$key_field}}_{{$row_id?? '%id%'}}">{{$label}}</label>
+        <label for="{{$value}}_{{ $field->input_id }}">{{$label}}</label>
     </div>
 @endforeach
 @endif
