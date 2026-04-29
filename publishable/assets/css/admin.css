@@ -138,3 +138,21 @@
 .color-input-wrapper [data-color_input_name] {
 	margin-right: 10px;
 }
+
+.repeater-file-image-wrap{
+	display: inline-block;
+	margin-bottom: 10px;
+}
+.repeater-file-image-wrap .repeater-file-image{
+	float: none;
+	max-height: 150px;
+    width: auto !important;
+    display: inline-block;
+    max-width: 200px;
+}
+
+.svg-wrap .remove-single-image ~ img {
+	background-image: repeating-conic-gradient(#ccc 0% 25%, #eee 0% 50%);
+	background-size: 20px 20px;
+	padding: 0!important;
+}
