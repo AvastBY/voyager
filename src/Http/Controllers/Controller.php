@@ -241,6 +241,27 @@ abstract class Controller extends BaseController
             $data->saveTranslations($translations);
         }
 
+		if(is_bread_translatable($data)){
+			$existTranslations = $data->translations;
+			if($existTranslations->isNotEmpty()){
+				$translationSaveMarks = [];
+				if(count($translations)){
+					foreach ($translations as $trField => $fieldTranslations) {
+						if(!empty($fieldTranslations)){
+							foreach ($fieldTranslations as $key1 => $it1) {
+								$translationSaveMarks[] = $trField.'__'.$it1->getLocale();
+							}
+						}
+					}
+				}
+
+				foreach ($existTranslations as $key => $it) {
+					$mark = $it->column_name.'__'.$it->locale;
+					if(!in_array($mark, $translationSaveMarks)) $it->delete();
+				}
+			}
+		}
+		
         foreach ($multi_select as $sync_data) {
             $data->belongsToMany(
                 $sync_data['model'],
