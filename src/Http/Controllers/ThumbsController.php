@@ -94,7 +94,6 @@ class ThumbsController extends Controller
 	public static function createThumbnail($thumbModel, $img_path, $table, $folder, $id, $field, $mark, $filename, $ext, $is_gallery = false)
 	{
 		if(!Storage::disk(self::getSourceDisk())->exists(self::getRelPath($img_path))) abort(404);
-	
 		$imageManager = new ImageManager(new Driver());
 		$image = $imageManager->read(Storage::disk(self::getSourceDisk())->get(self::getRelPath($img_path)));
 		
@@ -107,6 +106,8 @@ class ThumbsController extends Controller
 		$tH = ($thumbModel->height) ? $thumbModel->height : null;
 		if($tW &&!$tH) $tH = (int) ($image->height()/($image->width()/$tW));
 		if($tH &&!$tW) $tW = (int) ($image->width()/($image->height()/$tH));
+		
+		$thumbnail = $image;
 		
 		if($thumbModel->cover){
 			$thumbnail = $image->cover($tW, $tH);
