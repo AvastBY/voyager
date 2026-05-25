@@ -28,8 +28,6 @@ class VoyagerController extends Controller
     public function upload(Request $request)
     {
         $fullFilename = null;
-        $resizeWidth = 1800;
-        $resizeHeight = null;
         $slug = $request->input('type_slug');
         $file = $request->file('image');
 
@@ -54,18 +52,8 @@ class VoyagerController extends Controller
         $ext = $file->guessClientExtension();
 
         if (in_array($ext, ['jpeg', 'jpg', 'png', 'gif'])) {
-            $image = Image::make($file)
-                ->resize($resizeWidth, $resizeHeight, function (Constraint $constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                });
-            if ($ext !== 'gif') {
-                $image->orientate();
-            }
-            $image->encode($file->getClientOriginalExtension(), 75);
-
             // move uploaded file from temp to uploads directory
-            if (Storage::disk(config('voyager.storage.disk'))->put($fullPath, (string) $image, 'public')) {
+            if (Storage::disk(config('voyager.storage.disk'))->put($fullPath, file_get_contents($file), 'public')) {
                 $status = __('voyager::media.success_uploading');
                 $fullFilename = $fullPath;
             } else {
