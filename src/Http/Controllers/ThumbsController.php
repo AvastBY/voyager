@@ -152,7 +152,7 @@ class ThumbsController extends Controller
             $thumbnail = $thumbnail->blur($blurValue);
         }
 
-        if($ext == 'jpeg') $ext = 'jpg';
+        $ext = self::normalizeExtension($ext);
         
         if($is_gallery){
             $path = '_thumbs/'.$table.'/'.$folder.'/'.$id.'/gallery/'.$field.'/'.$mark.'/'.$filename.'.'.$ext;
@@ -174,6 +174,19 @@ class ThumbsController extends Controller
         $hash = str_replace(array('.','/',',','?',''), 'x', $hash);
 
         return $hash;
+    }
+
+    /**
+     * Intervention Image не знает расширение jfif. Это тот же JPEG.
+     */
+    public static function normalizeExtension(string $ext): string
+    {
+        $ext = strtolower($ext);
+
+        return match ($ext) {
+            'jpeg', 'jfif', 'jpe' => 'jpg',
+            default => $ext,
+        };
     }
 
     public function generatePlaceholder($mark, $ext)
